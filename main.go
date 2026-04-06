@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"unicode"
 	"unicode/utf8"
 )
@@ -15,12 +16,18 @@ func main() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		buf := bytes.NewBuffer(nil)
 		fmt.Fprintf(buf, "%s %s\n", r.Method, r.URL.Path)
-		n := buf.Len()
-		io.Copy(buf, r.Body)
-		if !isUTF8(buf.Bytes()[n:]) {
-			m := buf.Len() - n
-			buf.Truncate(n)
-			fmt.Fprintf(buf, "<binary stream of length %d>", m)
+		for k, v := range r.Header {
+			fmt.Fprintf(buf, "%s: %s\n", k, strings.Join(v, ", "))
+		}
+		fmt.Fprint(buf, "\n")
+		bodyStart := buf.Len()
+		bodyLen, _ := io.Copy(buf, r.Body)
+		if bodyLen > 0 {
+			if !isUTF8(buf.Bytes()[bodyStart:]) {
+				buf.Truncate(bodyStart)
+				fmt.Fprintf(buf, "<binary stream of length %d>", bodyLen)
+			}
+			fmt.Fprint(buf, "\n\n")
 		}
 		log.Printf("%s", buf.Bytes())
 		w.WriteHeader(http.StatusOK)
