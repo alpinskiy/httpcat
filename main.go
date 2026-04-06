@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 )
@@ -13,14 +14,13 @@ func main() {
 		buf := bytes.NewBuffer(nil)
 		fmt.Fprintf(buf, "%s %s\n", r.Method, r.URL.Path)
 		io.Copy(buf, r.Body)
-		buf.WriteByte('\n')
-		buf.WriteTo(os.Stdout)
+		log.Printf("%s", buf.Bytes())
 		w.WriteHeader(http.StatusOK)
 	})
 	var addr string
 	if addr = os.Getenv("LISTEN_ADDR"); addr == "" {
 		addr = ":8080"
 	}
-	fmt.Printf("Listening on %s\n", addr)
+	log.Printf("Listening on %s\n", addr)
 	fmt.Println(http.ListenAndServe(addr, nil))
 }
